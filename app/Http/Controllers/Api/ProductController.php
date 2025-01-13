@@ -4,13 +4,34 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Models\ProductSold;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
+
+
+    public function getProductQuantity(Request $request)
+    {
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+        $totalQuantity = ProductSold::join('sales', 'products_sold.sale_id', '=', 'sales.id')
+        ->whereBetween('sales.sale_date', [$startDate, $endDate])
+        ->sum('products_sold.quantity');
+    
+        return response()->json([
+            'total_quantity' => $totalQuantity,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+        ]);
+    }
+
+     
+
     public function index()
     {
         return response()->json(Product::get());

@@ -9,3 +9,4 @@ use App\Http\Controllers\Api\UserController;
 Route::apiResource('/users', UserController::class);
 Route::apiResource('/product', ProductController::class);
 Route::apiResource('/sale', SalesController::class);
+Route::get('/productquantity', [ProductController::class, 'getProductQuantity']);

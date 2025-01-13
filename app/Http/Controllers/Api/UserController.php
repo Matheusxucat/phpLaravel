@@ -29,7 +29,7 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        return response()->json(User::create($request->all()));
+        return response()->json(User::create($request->all()));//alterar aqui depois, colocar pra retornar apenas o id e uma string de criaçao de usuario
     }
 
     /**
