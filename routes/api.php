@@ -10,3 +10,5 @@ Route::apiResource('/users', UserController::class);
 Route::apiResource('/product', ProductController::class);
 Route::apiResource('/sale', SalesController::class);
 Route::get('/productquantity', [ProductController::class, 'getProductQuantity']);
+Route::get('/invoicedproducts', [ProductController::class, 'getInvoicedProducts']);
+//GET http://127.0.0.1:8000/api/invoicedproducts?start_date=2025-01-01&end_date=2025-01-08

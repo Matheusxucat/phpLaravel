@@ -14,15 +14,49 @@ class ProductController extends Controller
      * Display a listing of the resource.
      */
 
+    public function getInvoicedProducts(Request $request)
+    {
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+
+        $productDetails = ProductSold::join('products', 'products_sold.product_id', '=', 'products.id')
+            ->join('sales', 'products_sold.sale_id', '=', 'sales.id')
+            ->select(
+                'products.id',
+                'products.name',
+                //o sum ta calculando o valor total de cada consukta pela multiplicacao
+                // e tras o total
+                ProductSold::raw('SUM(products_sold.quantity) as quantidade'),
+                ProductSold::raw('SUM(products_sold.quantity * products_sold.price) as totalValue')
+            )
+
+            //o where.... e pra agrupar essa consulta somente nas datas passadas na query
+            ->whereBetween('sales.sale_date', [$startDate, $endDate])
+            // o groupBy e para agrupar o resultado do id do produto com o nome
+            ->groupBy('products.id', 'products.name')
+            ->get();
+
+        $totalBilled = $productDetails->sum('totalValue');
+
+        // return response()->json([
+        //     'start_date' => $startDate,
+        //     'end_date' => $endDate,
+        //     'productdetails' => $productDetails,
+        //     'total_billed' => $totalBilled,
+
+        // ]);
+        return view('teste', ['productDetails' => $productDetails ]);
+    }
+
 
     public function getProductQuantity(Request $request)
     {
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
         $totalQuantity = ProductSold::join('sales', 'products_sold.sale_id', '=', 'sales.id')
-        ->whereBetween('sales.sale_date', [$startDate, $endDate])
-        ->sum('products_sold.quantity');
-    
+            ->whereBetween('sales.sale_date', [$startDate, $endDate])
+            ->sum('products_sold.quantity');
+
         return response()->json([
             'total_quantity' => $totalQuantity,
             'start_date' => $startDate,
@@ -30,7 +64,7 @@ class ProductController extends Controller
         ]);
     }
 
-     
+
 
     public function index()
     {
@@ -74,7 +108,7 @@ class ProductController extends Controller
      */
     public function update(Request $request, Product $product)
     {
-        return response()->json($product->update($request->only(['name','price'])));
+        return response()->json($product->update($request->only(['name', 'price'])));
     }
 
     /**
