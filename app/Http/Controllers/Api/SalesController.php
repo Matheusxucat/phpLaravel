@@ -21,47 +21,94 @@ class SalesController extends Controller
         return response()->json(Product::get());
     }
 
+    public function create()
+    {
+        return view('sales.form');
+    }
+
+
+    // public function store(Request $request)
+    // {
+    //     DB::beginTransaction(); // Inicia uma transação
+    //     try {
+    //         // Extrair todos os product_id dos itens para uma única consulta ao banco
+    //         $productIds = array_column($request->items, 'product_id');
+
+    //         // Buscar todos os produtos de uma vez
+    //         $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
+
+    //         // Inicializar o valor total
+    //         $totalValue = 0;
+
+    //         // Calcular o valor total com base nos produtos sem fazer múltiplas consultas ao banco
+    //         foreach ($request->items as $item) {
+    //             $product = $products->get($item['product_id']); // Buscar produto já carregado
+    //             if ($product) {
+    //                 $totalValue += $product->price * $item['quantity'];
+    //             }
+    //         }
+
+    //         $sale = User::find($request->user_id)->sales()->create([
+    //             'total_value' => $totalValue, // Valor calculado dos itens
+    //             'sale_date' => Carbon::now()
+    //         ]);
+
+    //         // Adicionar os itens vendidos
+    //         foreach ($request->items as $item) {
+    //             $sale->items()->create([
+    //                 'product_id' => $item['product_id'],
+    //                 'quantity' => $item['quantity'],
+    //                 'price' => $products->get($item['product_id'])->price,
+    //             ]);
+    //         }
+
+    //         DB::commit(); // Confirma a transação
+    //         return response()->json(['message' => 'Venda criada com sucesso!'], 201);
+    //     } catch (\Exception $e) {
+    //         DB::rollBack(); // Reverte a transação em caso de erro
+    //         return response()->json(['error' => 'Erro ao criar venda: ' . $e->getMessage()], 500);
+    //     }
+    // }
 
     public function store(Request $request)
     {
         DB::beginTransaction(); // Inicia uma transação
         try {
-            // Extrair todos os product_id dos itens para uma única consulta ao banco
-            $productIds = array_column($request->items, 'product_id');
-
-            // Buscar todos os produtos de uma vez
-            $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
-
-            // Inicializar o valor total
-            $totalValue = 0;
-
-            // Calcular o valor total com base nos produtos sem fazer múltiplas consultas ao banco
-            foreach ($request->items as $item) {
-                $product = $products->get($item['product_id']); // Buscar produto já carregado
-                if ($product) {
-                    $totalValue += $product->price * $item['quantity'];
-                }
-            }
-
-            $sale = User::find($request->user_id)->sales()->create([
-                'total_value' => $totalValue, // Valor calculado dos itens
-                'sale_date' => Carbon::now()
+            // Criar a venda com total_value inicial 0
+            $sale = Sale::create([
+                'user_id' => $request->user_id,
+                'total_value' => 0, // Será atualizado depois
+                'sale_date' => now(),
             ]);
 
-            // Adicionar os itens vendidos
-            foreach ($request->items as $item) {
-                $sale->items()->create([
-                    'product_id' => $item['product_id'],
-                    'quantity' => $item['quantity'],
-                    'price' => $products->get($item['product_id'])->price,
-                ]);
+            $totalValue = 0; // Inicializa o total da venda
+
+            // Registrar o item vendido e calcular o total
+            $product = Product::find($request->product_id);
+
+            if (!$product) {
+                return redirect('/sale/create')->with('error', 'Produto não encontrado.');
             }
 
+            ProductSold::create([
+                'sale_id' => $sale->id,
+                'product_id' => $request->product_id,
+                'quantity' => $request->quantity,
+                'price' => $product->price,
+            ]);
+
+            // Calcular o total da venda
+            $totalValue += $product->price * $request->quantity;
+
+            // Atualizar o total_value na venda
+            $sale->update(['total_value' => $totalValue]);
+
             DB::commit(); // Confirma a transação
-            return response()->json(['message' => 'Venda criada com sucesso!'], 201);
+
+            return redirect('/sale/create')->with('success', 'Venda registrada com sucesso!');
         } catch (\Exception $e) {
             DB::rollBack(); // Reverte a transação em caso de erro
-            return response()->json(['error' => 'Erro ao criar venda: ' . $e->getMessage()], 500);
+            return redirect('/sale/create')->with('error', 'Erro ao registrar venda: ' . $e->getMessage());
         }
     }
 
@@ -142,3 +189,5 @@ class SalesController extends Controller
         return response()->json(['message' => 'Venda e itens associados deletados com sucesso.'], 200);
     }
 }
+
+

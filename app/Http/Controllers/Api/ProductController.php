@@ -34,6 +34,7 @@ class ProductController extends Controller
             ->whereBetween('sales.sale_date', [$startDate, $endDate])
             // o groupBy e para agrupar o resultado do id do produto com o nome
             ->groupBy('products.id', 'products.name')
+            ->orderBy('quantidade', 'desc')
             ->get();
 
         $totalBilled = $productDetails->sum('totalValue');
@@ -44,7 +45,7 @@ class ProductController extends Controller
         //     'productdetails' => $productDetails,
         //     'total_billed' => $totalBilled,
 
-        // ]);
+        //  ]);
         return view('teste', ['productDetails' => $productDetails ]);
     }
 
@@ -76,7 +77,7 @@ class ProductController extends Controller
      */
     public function create()
     {
-        //
+        return view('fomularioTeste');
     }
 
     /**
@@ -84,7 +85,20 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
-        return response()->json(Product::create($request->all()));
+        {
+            $validatedData = $request->validate([
+                'name' => 'required|string|max:255',
+                'price' => 'required|string',
+            ]);
+
+            // Converter valor para o formato correto (substituir vírgula por ponto)
+            $validatedData['price'] = str_replace(',', '.', $validatedData['price']);
+
+            Product::create($validatedData);
+
+            return redirect()->back()->with('success', 'Produto cadastrado com sucesso!');
+        }
+        //return response()->json(Product::create($request->all()));
     }
 
     /**
